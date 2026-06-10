@@ -73,6 +73,10 @@ interface AppState {
   isSyncModalOpen: boolean;
   isApiModalOpen: boolean;
   geminiApiKey: string;
+  apiEndpoint: string;
+  syncEndpoint: string;
+  syncToken: string;
+  isCloudSyncModalOpen: boolean;
 
   // Actions
   addSchedule: (s: Omit<Schedule, 'id' | 'createTime'>) => void;
@@ -90,7 +94,11 @@ interface AppState {
   setEditingScheduleId: (id: string | null) => void;
   setIsSyncModalOpen: (open: boolean) => void;
   setIsApiModalOpen: (open: boolean) => void;
+  setIsCloudSyncModalOpen: (open: boolean) => void;
+  setSyncEndpoint: (url: string) => void;
+  setSyncToken: (token: string) => void;
   setGeminiApiKey: (key: string) => void;
+  setApiEndpoint: (url: string) => void;
   importData: (data: Partial<AppState>) => void;
 }
 
@@ -115,7 +123,11 @@ export const useStore = create<AppState>()(
       editingScheduleId: null,
       isSyncModalOpen: false,
       isApiModalOpen: false,
+      isCloudSyncModalOpen: false,
       geminiApiKey: '',
+      apiEndpoint: '',
+      syncEndpoint: '',
+      syncToken: '',
 
       addSchedule: (s) => set((state) => ({
         schedules: [...state.schedules, { 
@@ -148,7 +160,11 @@ export const useStore = create<AppState>()(
       setEditingScheduleId: (id) => set({ editingScheduleId: id }),
       setIsSyncModalOpen: (open) => set({ isSyncModalOpen: open }),
       setIsApiModalOpen: (open) => set({ isApiModalOpen: open }),
+      setIsCloudSyncModalOpen: (open) => set({ isCloudSyncModalOpen: open }),
+      setSyncEndpoint: (url) => set({ syncEndpoint: url }),
+      setSyncToken: (token) => set({ syncToken: token }),
       setGeminiApiKey: (key) => set({ geminiApiKey: key }),
+      setApiEndpoint: (url) => set({ apiEndpoint: url }),
       importData: (data) => set((state) => ({ ...state, ...data }))
     }),
     {

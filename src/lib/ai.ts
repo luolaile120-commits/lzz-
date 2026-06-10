@@ -1,8 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 
-export async function generateContent(apiKey: string, text: string, systemPrompt: string): Promise<string> {
+export async function generateContent(apiKey: string, text: string, systemPrompt: string, apiEndpoint?: string): Promise<string> {
   if (apiKey.startsWith('sk-')) {
-    const res = await fetch('https://api.deepseek.com/chat/completions', {
+    const url = apiEndpoint || 'https://api.deepseek.com/chat/completions';
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -23,7 +24,11 @@ export async function generateContent(apiKey: string, text: string, systemPrompt
     const json = await res.json();
     return json.choices[0].message.content || "";
   } else {
-    const ai = new GoogleGenAI({ apiKey });
+    const options: any = { apiKey };
+    if (apiEndpoint) {
+      options.baseUrl = apiEndpoint;
+    }
+    const ai = new GoogleGenAI(options);
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash",
       contents: text,

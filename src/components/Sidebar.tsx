@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { generateContent } from '../lib/ai';
 
 export function Sidebar() {
-  const { isSidebarOpen, toggleSidebar, addSchedule, categories, geminiApiKey } = useStore();
+  const { isSidebarOpen, toggleSidebar, addSchedule, categories, geminiApiKey, apiEndpoint } = useStore();
   const [activeTab, setActiveTab] = useState<'schedule' | 'permanent'>('schedule');
 
   const [smartText, setSmartText] = useState('');
@@ -45,7 +45,7 @@ export function Sidebar() {
 - timeSlot: 时段 (上午为 'morning', 下午或晚上为 'afternoon')
 - notes: 备注 (在此提取日程的特别注意事项，如：哪个领导参会、哪个部门组织、注意事项等，如果没有则为空字符串)`;
 
-      const responseText = await generateContent(gApiKey, textToParse, systemPrompt);
+      const responseText = await generateContent(gApiKey, textToParse, systemPrompt, apiEndpoint);
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       
@@ -62,9 +62,9 @@ export function Sidebar() {
         }));
         setSmartText('');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("识别失败，请检查网络或重试。");
+      alert(`识别失败: ${e.message}。请检查网络、API Key 或更换代理(如果在浏览器直接访问 DeepSeek API 可能会跨域)。`);
     } finally {
       setIsParsing(false);
     }

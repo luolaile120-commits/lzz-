@@ -19,10 +19,11 @@ import { zhCN } from 'date-fns/locale';
 
 import { EditModal } from './components/EditModal';
 import { SyncModal } from './components/SyncModal';
+import { CloudSyncModal } from './components/CloudSyncModal';
 import { ApiModal } from './components/ApiModal';
 
 export default function App() {
-  const { theme, themePreset, animations, isSidebarOpen, isRightPanelOpen, viewMode, currentDate, setViewMode, setCurrentDate, isSyncModalOpen, setIsSyncModalOpen } = useStore();
+  const { theme, themePreset, animations, isSidebarOpen, isRightPanelOpen, viewMode, currentDate, setViewMode, setCurrentDate, isSyncModalOpen, setIsSyncModalOpen, isCloudSyncModalOpen, setIsCloudSyncModalOpen } = useStore();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -88,6 +89,7 @@ export default function App() {
       <QuickFab />
       <EditModal />
       {isSyncModalOpen && <SyncModal onClose={() => setIsSyncModalOpen(false)} />}
+      {isCloudSyncModalOpen && <CloudSyncModal onClose={() => setIsCloudSyncModalOpen(false)} />}
       <ApiModal />
     </div>
   );

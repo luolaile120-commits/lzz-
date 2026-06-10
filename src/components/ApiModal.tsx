@@ -3,13 +3,15 @@ import { useStore } from '../store';
 import { X, KeyRound, Check } from 'lucide-react';
 
 export function ApiModal() {
-  const { isApiModalOpen, setIsApiModalOpen, geminiApiKey, setGeminiApiKey } = useStore();
+  const { isApiModalOpen, setIsApiModalOpen, geminiApiKey, setGeminiApiKey, apiEndpoint, setApiEndpoint } = useStore();
   const [apiKey, setApiKey] = useState(geminiApiKey);
+  const [endpoint, setEndpoint] = useState(apiEndpoint);
 
   if (!isApiModalOpen) return null;
 
   const handleSave = () => {
     setGeminiApiKey(apiKey);
+    setApiEndpoint(endpoint);
     setIsApiModalOpen(false);
   };
 
@@ -50,6 +52,23 @@ export function ApiModal() {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="AIzaSy... 或 sk-..."
+            className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] px-4 py-3 rounded-xl focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] outline-none text-[14px]"
+          />
+
+          <div className="space-y-1.5 pt-2">
+            <label className="text-[14px] font-medium text-[var(--text-primary)] block">
+              API Proxy / 代理地址 (可选)
+            </label>
+            <p className="text-[12px] text-[var(--text-secondary)]">
+              如果直接请求官方 API 遇到网络或跨域(CORS)问题，可在此填写 API 代理地址。例如使用 DeepSeek 兼容代理：<span className="font-mono bg-[var(--bg-hover)] px-1 rounded">https://api.siliconflow.cn/v1/chat/completions</span>。留空则使用默认地址。
+            </p>
+          </div>
+          
+          <input
+            type="text"
+            value={endpoint}
+            onChange={(e) => setEndpoint(e.target.value)}
+            placeholder="例如: https://your-proxy.com/v1/chat/completions"
             className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] px-4 py-3 rounded-xl focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] outline-none text-[14px]"
           />
         </div>
