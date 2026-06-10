@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@layer theme {
+  :root,
+  [data-theme="light"] {
+    --bg-primary: #f5f5f7;
+    --bg-sidebar: rgba(255, 255, 255, 0.82);
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-card-solid: #fff;
+    --bg-hover: rgba(0, 0, 0, 0.04);
+    
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --text-tertiary: #aeaeb2;
+    
+    --border-color: rgba(0, 0, 0, 0.06);
+    --border-divider: rgba(0, 0, 0, 0.08);
+    
+    --accent: #0071e3;
+    --accent-hover: #0077ED;
+    --accent-light: rgba(0, 113, 227, 0.08);
+    
+    --danger: #E06060;
+    --danger-light: rgba(224, 96, 96, 0.08);
+    --warning: #E8A040;
+    --warning-light: rgba(232, 160, 64, 0.08);
+    --success: #48B890;
+    --success-light: rgba(72, 184, 144, 0.08);
+  }
+
+  [data-theme="dark"] {
+    --bg-primary: #1c1c1e;
+    --bg-sidebar: rgba(28, 28, 30, 0.90);
+    --bg-card: rgba(44, 44, 46, 0.82);
+    --bg-card-solid: #2c2c2e;
+    --bg-hover: rgba(255, 255, 255, 0.07);
+    
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --text-tertiary: #636366;
+    
+    --border-color: rgba(255, 255, 255, 0.10);
+    --border-divider: rgba(255, 255, 255, 0.12);
+    
+    --accent-light: rgba(0, 113, 227, 0.22);
+    --danger-light: rgba(224, 96, 96, 0.18);
+    --warning-light: rgba(232, 160, 64, 0.18);
+    --success-light: rgba(72, 184, 144, 0.18);
+  }
+
+  [data-preset="aurora"] {
+    --accent: #7C6CF0; --accent-hover: #6B5AD9; --accent-light: rgba(124,108,240,0.10);
+    --warning: #F0A856; --warning-light: rgba(240,168,86,0.12);
+    --danger: #E07068; --danger-light: rgba(224,112,104,0.10);
+    --success: #5CC4A8; --success-light: rgba(92,196,168,0.10);
+  }
+  
+  [data-preset="sunset"] {
+    --accent: #E09070; --accent-hover: #D07C5C; --accent-light: rgba(224,144,112,0.10);
+    --warning: #F0B868; --warning-light: rgba(240,184,104,0.12);
+    --danger: #D06058; --danger-light: rgba(208,96,88,0.10);
+    --success: #58B890; --success-light: rgba(88,184,144,0.10);
+  }
+  
+  [data-preset="ocean"] {
+    --accent: #3A8FD6; --accent-hover: #2E7DBF; --accent-light: rgba(58,143,214,0.10);
+    --warning: #E8A858; --warning-light: rgba(232,168,88,0.12);
+    --danger: #D06860; --danger-light: rgba(208,104,96,0.10);
+    --success: #48B8A0; --success-light: rgba(72,184,160,0.10);
+  }
+  
+  [data-preset="forest"] {
+    --accent: #48A898; --accent-hover: #3C9584; --accent-light: rgba(72,168,152,0.10);
+    --warning: #E0A850; --warning-light: rgba(224,168,80,0.12);
+    --danger: #D07068; --danger-light: rgba(208,112,104,0.10);
+    --success: #58C0A0; --success-light: rgba(88,192,160,0.10);
+  }
+  
+  [data-preset="rose"] {
+    --accent: #C87098; --accent-hover: #B56088; --accent-light: rgba(200,112,152,0.10);
+    --warning: #E8A860; --warning-light: rgba(232,168,96,0.12);
+    --danger: #D06868; --danger-light: rgba(208,104,104,0.10);
+    --success: #58B898; --success-light: rgba(88,184,152,0.10);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--bg-card);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+  }
+  .glass-sidebar {
+    background: var(--bg-sidebar);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.4);
+}
+
+[data-anim="off"] *,
+[data-anim="off"] *::before,
+[data-anim="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}

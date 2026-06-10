@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的日程</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f7f9f9;
+            --surface-color: #ffffff;
+            --primary-color: #2b5cff;
+            --primary-light: #e6edff;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-tertiary: #9ca3af;
+            --border-color: #e5e7eb;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --success-color: #10b981;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --morning-bg: #fdf6e3;
+            --afternoon-bg: #f0fdf4;
+            --evening-bg: #f3f4f6;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #111827;
+            --surface-color: #1f2937;
+            --primary-color: #3b82f6;
+            --primary-light: rgba(59, 130, 246, 0.15);
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-tertiary: #6b7280;
+            --border-color: #374151;
+            --morning-bg: rgba(253, 246, 227, 0.05);
+            --afternoon-bg: rgba(240, 253, 244, 0.05);
+            --evening-bg: rgba(243, 244, 246, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; min-height: 100vh; overflow-y: scroll; }
+        
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; position: relative; }
+        
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding: 12px 20px; background: var(--surface-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+        .header-title-group { display: flex; align-items: center; gap: 12px;}
+        .header h1 { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+        
+        .date-badge { background: var(--primary-light); color: var(--primary-color); padding: 6px 12px; border-radius: var(--radius-full); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;}
+        .date-badge:hover { background: var(--primary-color); color: white;}
+        
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; position: relative;}
+        .icon-btn:hover { background: var(--border-color); color: var(--text-primary); }
+
+        .agenda-view { display: flex; flex-direction: column; gap: 20px; }
+        .time-section { display: flex; flex-direction: column; gap: 12px; }
+        .time-header { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-secondary); padding-left: 4px; }
+        .time-line { flex: 1; height: 1px; background-color: var(--border-color); }
+        
+        .event-card { background: var(--surface-color); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid var(--border-color); transition: transform 0.2s, box-shadow 0.2s; position: relative; cursor: pointer;}
+        .event-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        
+        .event-card.high { border-left-color: var(--danger-color); }
+        .event-card.medium { border-left-color: var(--warning-color); }
+        .event-card.low { border-left-color: var(--success-color); }
+        
+        .event-card.done { opacity: 0.6; filter: grayscale(100%); }
+        .event-card.done .event-title { text-decoration: line-through; }
+        
+        .event-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .event-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;}
+        .event-time { font-size: 13px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; }
+        .event-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        .event-footer { display: flex; justify-content: space-between; align-items: center; }
+        .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tag-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--border-color); color: var(--text-secondary); }
+        
+        .action-btns { display: flex; gap: 6px; }
+        .action-btns button { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .action-btns button:hover { background: var(--border-color); }
+        .action-btns button.done-btn:hover { background: var(--success-color); color: white; border-color: var(--success-color); }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-tertiary); }
+        .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+        .floating-action { position: fixed; bottom: 30px; right: 30px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-color); color: white; border: none; box-shadow: var(--shadow-lg); font-size: 24px; cursor: pointer; transition: all 0.3s; z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .floating-action:hover { transform: scale(1.05); }
+
+        .quick-fab-panel { position: fixed; bottom: 100px; right: 30px; width: 320px; background: var(--surface-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 20px; z-index: 99; transform-origin: bottom right; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; visibility: hidden; transform: scale(0.8) translateY(20px); border: 1px solid var(--border-color); }
+        .quick-fab-panel.active { opacity: 1; visibility: visible; transform: scale(1) translateY(0); }
+        .quick-fab-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
+        .quick-fab-field { margin-bottom: 12px; }
+        .quick-fab-field label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+        
+        .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: inherit; font-size: 14px; background: var(--surface-color); color: var(--text-primary); transition: border-color 0.2s;}
+        .form-input:focus { outline: none; border-color: var(--primary-color); }
+        textarea.form-input { resize: vertical; min-height: 60px; }
+        
+        .slot-selector { display: flex; gap: 8px; background: var(--border-color); padding: 4px; border-radius: 8px; }
+        .slot-btn { flex: 1; padding: 6px 0; text-align: center; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; color: var(--text-secondary); }
+        .slot-btn.active { background: var(--surface-color); color: var(--text-primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+        
+        .btn { padding: 10px 16px; border-radius: var(--radius-md); font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 6px; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-secondary { background: var(--border-color); color: var(--text-primary); }
+        .btn-secondary:hover { background: #d1d5db; }
+        [data-theme="dark"] .btn-secondary:hover { background: #4b5563; }
+        
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--text-primary); color: var(--surface-color); padding: 12px 24px; border-radius: var(--radius-full); font-size: 14px; box-shadow: var(--shadow-lg); opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 1000; font-weight: 500;}
+        .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; visibility: hidden; transition: all 0.2s; backdrop-filter: blur(2px);}
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: var(--surface-color); width: 90%; max-width: 400px; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-lg); transform: scale(0.95); transition: transform 0.2s;}
+        .modal-overlay.active .modal { transform: scale(1); }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { background: transparent; border: none; font-size: 18px; color: var(--text-secondary); cursor: pointer; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; background: var(--bg-color); }
+        
+        /* Dropdown */
+        .settings-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); width: 160px; z-index: 150;}
+        .settings-item { display: block; width: 100%; text-align: left; padding: 10px 16px; border: none; background: transparent; color: var(--text-primary); cursor: pointer; font-size: 14px; transition: background 0.2s;}
+        .settings-item i { width: 20px; color: var(--text-secondary); }
+        .settings-item:hover { background: var(--primary-light); color: var(--primary-color); }
+        .settings-item:hover i { color: var(--primary-color); }
+        .settings-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+        
+        @media (max-width: 600px) {
+            .quick-fab-panel { right: 20px; left: 20px; width: auto; bottom: 90px; }
+            .floating-action { right: 20px; bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-title-group">
+                <h1>我的日程</h1>
+                <div class="date-badge" id="currentDateDisplay" onclick="$('datePickerModal').classList.add('active')">
+                    <i class="far fa-calendar-alt"></i> <span id="dateText">今天</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="themeBtn"><i class="fas fa-moon"></i></button>
+                <div style="position: relative;">
+                    <button class="icon-btn" id="settingsBtn"><i class="fas fa-ellipsis-v"></i></button>
+                    <!-- Settings Dropdown -->
+                    <div class="settings-dropdown" id="settingsMenu" style="display:none" role="menu">
+                        <button class="settings-item" id="manageCategoryBtn"><i class="fas fa-tags"></i> 分类管理</button>
+                        <button class="settings-item" id="addOrganizerBtn"><i class="fas fa-user-plus"></i> 添加发起人</button>
+                        <button class="settings-item" id="addParticipantBtn"><i class="fas fa-users"></i> 添加相关人员</button>
+                        <div class="settings-divider"></div>
+                        <button class="settings-item" id="apiKeyBtn"><i class="fas fa-key"></i> Gemini API配置</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="agenda-view" id="agendaRenderArea"></div>
+
+        <button class="floating-action" id="fabToggle"><i class="fas fa-plus"></i></button>
+
+        <div class="quick-fab-panel" id="fabPanel">
+            <div class="quick-fab-title"><i class="fas fa-bolt"></i> 快速添加</div>
+            
+            <div class="quick-fab-field">
+                <label>智能识别 (粘贴文本后点击提取)</label>
+                <textarea class="form-input" id="fabSmartInput" placeholder="例如：明天下午3点在会议室开会" style="min-height: 40px;"></textarea>
+                <button class="btn btn-primary btn-sm" id="fabSmartBtn" style="width: 100%; margin-top: 8px;"><i class="fas fa-wand-magic-sparkles"></i> 自动提取</button>
+                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px; text-align: center;">识别后自动填充，确认后提交</div>
+            </div>
+            
+            <div class="quick-fab-field">
+                <label>标题</label>
+                <input type="text" class="form-input" id="fabTitle" placeholder="准备周报..." autocomplete="off">
+            </div>
+            <div class="quick-fab-field">
+                <label>时间段</label>
+                <div class="slot-selector" id="fabSlotSelector">
+                    <div class="slot-btn active" data-slot="morning">上午</div>
+                    <div class="slot-btn" data-slot="afternoon">下午</div>
+                    <div class="slot-btn" data-slot="evening">晚上</div>
+                </div>
+            </div>
+            <div class="quick-fab-field">
+                <label>详细描述 (可选)</label>
+                <textarea class="form-input" id="fabDesc" placeholder="地点、人员等补充..."></textarea>
+            </div>
+            <button class="btn btn-primary" id="fabSubmit" style="width: 100%; margin-top: 8px;">保存至 <span id="fabDateLabel">今天</span></button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="datePickerModal">
+        <div class="modal">
+            <div class="modal-header"><h3>选择日期</h3><button class="modal-close" onclick="$('datePickerModal').classList.remove('active')"><i class="fas fa-xmark"></i></button></div>
+            <div class="modal-body">
+                <input type="date" class="form-input" id="fDate">
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="$('datePickerModal').classList.remove('active')">取消</button><button class="btn btn-primary" id="jumpDateBtn">跳转</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="apiKeyModal">
+        <div class="modal">
+            <div class="modal-header"><h3>Gemini API 配置</h3><button class="modal-close" id="apiKeyClose"><i class="fas fa-xmark"></i></button></div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">请输入您的 Gemini API Key 以启用智能识别功能。<br/>为保障安全，此密钥仅保存在本地浏览器中，请妥善保管。</p>
+                <input type="text" class="form-input" id="apiKeyValue" placeholder="AIzaSy...">
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" id="apiKeyCancel">取消</button><button class="btn btn-primary" id="apiKeySave">保存</button></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        let DB = {
+            events: JSON.parse(localStorage.getItem('my_agenda_events')) || [],
+            settings: JSON.parse(localStorage.getItem('my_agenda_settings')) || { theme: 'light', geminiApiKey: '' }
+        };
+        let S = { currentDate: new Date(), fabOpen: false, fabSlot: 'morning' };
+
+        function formatDateKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        
+        function getFriendlyDateText(dateObj) {
+            const today = new Date();
+            const tk = formatDateKey(today);
+            const dk = formatDateKey(dateObj);
+            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+            const tmwk = formatDateKey(tomorrow);
+            const yest = new Date(today); yest.setDate(yest.getDate()-1);
+            const yk = formatDateKey(yest);
+            
+            if(dk === tk) return '今天';
+            if(dk === tmwk) return '明天';
+            if(dk === yk) return '昨天';
+            const days = ['周日','周一','周二','周三','周四','周五','周六'];
+            return `${dateObj.getMonth()+1}月${dateObj.getDate()}日 ${days[dateObj.getDay()]}`;
+        }
+
+        function saveDB() {
+            localStorage.setItem('my_agenda_events', JSON.stringify(DB.events));
+            localStorage.setItem('my_agenda_settings', JSON.stringify(DB.settings));
+        }
+
+        let toastTimer;
+        function toast(msg) {
+            const el = $('toast');
+            el.textContent = msg; el.classList.add('active');
+            clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('active'), 2500);
+        }
+
+        const slotMap = {
+            'morning': { label: '上午', icon: 'fa-sun', color: '#f59e0b'},
+            'afternoon': { label: '下午', icon: 'fa-coffee', color: '#3b82f6'},
+            'evening': { label: '晚上', icon: 'fa-moon', color: '#8b5cf6'}
+        };
+
+        function render() {
+            const dKey = formatDateKey(S.currentDate);
+            $('dateText').textContent = getFriendlyDateText(S.currentDate);
+            $('fabDateLabel').textContent = getFriendlyDateText(S.currentDate);
+            const dayEvents = DB.events.filter(e => e.date === dKey);
+            const agenda = $('agendaRenderArea'); agenda.innerHTML = '';
+            
+            if(dayEvents.length === 0) {
+                agenda.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="far fa-calendar-check"></i></div><p>今天暂无日程安排</p><p style="font-size:13px; margin-top:8px;">点击右下方 + 号快速添加</p></div>`;
+                return;
+            }
+
+            ['morning', 'afternoon', 'evening'].forEach(slot => {
+                const slotEvents = dayEvents.filter(e => e.slot === slot);
+                if(slotEvents.length === 0) return;
+                const sInfo = slotMap[slot];
+                let html = `<div class="time-section"><div class="time-header"><i class="fas ${sInfo.icon}" style="color:${sInfo.color}"></i> ${sInfo.label}<div class="time-line"></div></div>`;
+                
+                slotEvents.forEach(e => {
+                    const doneCls = e.done ? 'done' : '';
+                    let tagsHtml = '';
+                    if(e.category) tagsHtml += `<span class="tag-badge">${e.category}</span>`;
+                    if(e.priority && e.priority !== 'none') {
+                        const pColor = e.priority === 'high' ? 'var(--danger-color)' : e.priority === 'medium' ? 'var(--warning-color)' : 'var(--success-color)';
+                        const pLabel = e.priority === 'high' ? '高优先级' : e.priority === 'medium' ? '中优先级' : '低优先级';
+                        tagsHtml += `<span class="tag-badge" style="color:${pColor}; border:1px solid ${pColor}">${pLabel}</span>`;
+                    }
+                    html += `<div class="event-card ${e.priority || 'none'} ${doneCls}" onclick="toggleDone('${e.id}')"><div class="event-header"><div class="event-title">${e.title}</div></div>${e.desc ? `<div class="event-desc">${e.desc}</div>` : ''}<div class="event-footer"><div class="badges">${tagsHtml}</div><div class="action-btns" onclick="event.stopPropagation()"><button class="done-btn" onclick="toggleDone('${e.id}')"><i class="fas ${e.done ? 'fa-undo' : 'fa-check'}"></i></button><button onclick="delEvent('${e.id}')"><i class="far fa-trash-alt"></i></button></div></div></div>`;
+                });
+                html += `</div>`; agenda.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        window.toggleDone = (id) => { const ev = DB.events.find(e => e.id === id); if(ev) { ev.done = !ev.done; saveDB(); render(); } }
+        window.delEvent = (id) => { if(confirm('确定要删除这个日程吗？')) { DB.events = DB.events.filter(e => e.id !== id); saveDB(); render(); toast('已删除'); } }
+
+        function toggleFab() {
+            S.fabOpen = !S.fabOpen;
+            const btn = $('fabToggle'), panel = $('fabPanel');
+            if(S.fabOpen) {
+                btn.innerHTML = '<i class="fas fa-times"></i>'; btn.style.transform = 'rotate(90deg)';
+                panel.classList.add('active'); $('fabTitle').focus();
+            } else {
+                btn.innerHTML = '<i class="fas fa-plus"></i>'; btn.style.transform = 'rotate(0deg)';
+                panel.classList.remove('active');
+            }
+        }
+        
+        function updateFabSlotUI() {
+            document.querySelectorAll('#fabSlotSelector .slot-btn').forEach(el => {
+                if(el.dataset.slot === S.fabSlot) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+        }
+
+        function init() {
+            if(DB.settings.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            
+            $('themeBtn').addEventListener('click', () => {
+                const nav = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', nav); DB.settings.theme = nav; saveDB();
+            });
+
+            $('settingsBtn').addEventListener('click', (e) => { e.stopPropagation(); const menu = $('settingsMenu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; });
+            document.addEventListener('click', (e) => { $('settingsMenu').style.display = 'none'; if(S.fabOpen && !$('fabPanel').contains(e.target) && !$('fabToggle').contains(e.target)) toggleFab(); });
+            $('fabToggle').addEventListener('click', (e) => { e.stopPropagation(); toggleFab(); });
+            $('fabPanel').addEventListener('click', (e) => e.stopPropagation());
+
+            document.querySelectorAll('#fabSlotSelector .slot-btn').forEach(el => {
+                el.addEventListener('click', () => { S.fabSlot = el.dataset.slot; updateFabSlotUI(); });
+            });
+
+            $('fabSubmit').addEventListener('click', () => {
+                const title = $('fabTitle').value.trim(), desc = $('fabDesc').value.trim();
+                if(!title) return toast('请输入标题');
+                
+                DB.events.push({ id: 'ev_' + Date.now(), date: formatDateKey(S.currentDate), slot: S.fabSlot, title: title, desc: desc, priority: 'none', done: false, createdAt: new Date().toISOString() });
+                saveDB();
+                $('fabTitle').value = ''; $('fabDesc').value = ''; $('fabSmartInput').value = '';
+                toggleFab(); render(); toast('添加成功');
+            });
+
+            $('jumpDateBtn').addEventListener('click', () => {
+                const val = $('fDate').value;
+                if(val) { S.currentDate = new Date(val + 'T00:00:00'); render(); }
+                $('datePickerModal').classList.remove('active');
+            });
+
+            $('apiKeyBtn').addEventListener('click', () => { $('settingsMenu').style.display = 'none'; $('apiKeyValue').value = DB.settings.geminiApiKey || ''; $('apiKeyModal').classList.add('active'); });
+            $('apiKeyClose').addEventListener('click', () => $('apiKeyModal').classList.remove('active'));
+            $('apiKeyCancel').addEventListener('click', () => $('apiKeyModal').classList.remove('active'));
+            $('apiKeySave').addEventListener('click', () => { DB.settings.geminiApiKey = $('apiKeyValue').value.trim(); saveDB(); $('apiKeyModal').classList.remove('active'); toast('API配置已保存'); });
+
+            $('fabSmartBtn').addEventListener('click', async () => {
+                const text = $('fabSmartInput').value.trim();
+                if(!text) return toast('请输入需要识别的文本');
+                
+                const btn = $('fabSmartBtn'); const origHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提取中...'; btn.disabled = true;
+
+                try {
+                    let resultText = '';
+                    const apiKey = DB.settings.geminiApiKey;
+                    if (apiKey) {
+                        const systemPrompt = `你是一个日程提取助手。当前时间是 ${new Date().toLocaleString('zh-CN')}。
+请严格返回JSON（不含换行和反引号）：{"title":"标题","desc":"详细描述","timeSlot":"morning|afternoon|evening","date":"YYYY-MM-DD","category":"分类名称"}`;
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: text }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } })
+                        });
+                        if(!res.ok) throw new Error('API请求失败，请检查API Key');
+                        const data = await res.json();
+                        resultText = data.candidates[0].content.parts[0].text;
+                    } else {
+                        const res = await fetch('/api/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+                        if(!res.ok) throw new Error('服务端不可用。单机使用请先在设置中配置 Gemini API Key。');
+                        const data = await res.json();
+                        resultText = JSON.stringify(data);
+                    }
+
+                    try {
+                        const r = JSON.parse(resultText.replace(/```json/g, '').replace(/```/g, '').trim());
+                        if(r.title) $('fabTitle').value = r.title;
+                        if(r.desc) $('fabDesc').value = r.desc;
+                        if(r.timeSlot && slotMap[r.timeSlot]) { S.fabSlot = r.timeSlot; updateFabSlotUI(); }
+                        if(r.date) {
+                            S.currentDate = new Date(r.date.replace(/-/g, '/') + ' 00:00:00');
+                            $('fDate').value = r.date; $('dateText').textContent = getFriendlyDateText(S.currentDate); $('fabDateLabel').textContent = getFriendlyDateText(S.currentDate); render();
+                        }
+                        $('fabSmartInput').value = '';
+                        toast('识别完成！请核对');
+                    } catch(e) { throw new Error('解析响应失败'); }
+                } catch(e) { toast(e.message || '识别失败'); } 
+                finally { btn.innerHTML = origHtml; btn.disabled = false; }
+            });
+
+            render();
+        }
+        init();
+    </script>
+</body>
+</html>
