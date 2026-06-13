@@ -53,8 +53,11 @@ async function startServer() {
 
   // Local memory store fallback when Vercel KV environment variables are not set
   let localKvMemory: any = null;
+  let cachedKvClient: any = null;
 
   const getKVClient = async () => {
+    if (cachedKvClient) return cachedKvClient;
+
     let redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL || process.env.KV_URL;
     let token = process.env.KV_REST_API_TOKEN;
 
@@ -68,23 +71,22 @@ async function startServer() {
     if (!redisUrl) return null;
 
     if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {
-      try {
-        const parsed = new URL(redisUrl);
-        redisUrl = `https://${parsed.hostname}`;
-        if (parsed.password) {
-          token = parsed.password;
-        }
-      } catch (err) {
-        console.error('Error parsing redis connection URL as Rest URL:', err);
-      }
+      const IoRedis = (await import('ioredis')).default;
+      cachedKvClient = new IoRedis(redisUrl, {
+        maxRetriesPerRequest: 1,
+        connectTimeout: 5000,
+      });
+      return cachedKvClient;
     }
 
     if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
       const { createClient } = await import('@vercel/kv');
-      return createClient({ url: redisUrl, token: token || '' });
+      cachedKvClient = createClient({ url: redisUrl, token: token || '' });
+      return cachedKvClient;
     } else {
       const m = await import('@vercel/kv');
-      return m.kv;
+      cachedKvClient = m.kv;
+      return cachedKvClient;
     }
   };
 
