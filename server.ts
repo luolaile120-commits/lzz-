@@ -2,30 +2,6 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import * as path from "path";
 import cors from "cors";
-import Redis from "ioredis";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-let redisClient: Redis | null = null;
-
-function getRedisClient() {
-  if (!redisClient) {
-    const redisUrl = process.env.KV_REDIS_URL || "redis://default:b8fcXFu8fFBxNYo45phx3ob5sUe69JNi@thatch-caption-side-46195.db.redis.io:10087";
-    redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
-      retryStrategy(times) {
-        const delay = Math.min(times * 100, 2000);
-        return delay;
-      }
-    });
-    
-    redisClient.on("error", (err) => {
-      console.error("Redis client error:", err);
-    });
-  }
-  return redisClient;
-}
 
 async function startServer() {
   const app = express();
@@ -75,33 +51,64 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // Vercel KV / Upstash Redis sync endpoints
+  // Local memory store fallback when Vercel KV environment variables are not set
+  let localKvMemory: any = null;
+
   app.get("/api/kv", async (req, res) => {
+    const redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+    if (!redisUrl || !token) {
+      console.warn("KV environment variables are not fully configured (Requires URL and TOKEN). Using local server memory fallback for /api/kv.");
+      return res.json({ success: true, data: localKvMemory });
+    }
+    
     try {
-      const client = getRedisClient();
-      const raw = await client.get("app_data");
-      if (!raw) {
-        return res.json({ state: null });
+      const { createClient } = await import('@vercel/kv');
+      let kvClient;
+      if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
+        kvClient = createClient({ url: redisUrl, token: token });
+      } else {
+        const m = await import('@vercel/kv');
+        kvClient = m.kv;
       }
-      res.json(JSON.parse(raw));
+      const dataStr = await kvClient.get('schedule_data');
+      let parsedData = null;
+      if (dataStr) {
+        parsedData = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
+      }
+      res.json({ success: true, data: parsedData });
     } catch (error: any) {
-      console.error("Vercel KV GET error:", error);
-      res.status(500).json({ error: error.message || "获取云端数据失败" });
+      console.warn("Vercel KV failed to read, falling back to local server memory:", error.message);
+      res.json({ success: true, data: localKvMemory });
     }
   });
 
   app.post("/api/kv", async (req, res) => {
+    const { data } = req.body;
+    const redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+    if (!redisUrl || !token) {
+      console.warn("KV environment variables are not fully configured (Requires URL and TOKEN). Saving to local server memory fallback for /api/kv.");
+      localKvMemory = data;
+      return res.json({ success: true, message: "Saved to local server memory (No KV configured)" });
+    }
+
     try {
-      const client = getRedisClient();
-      const stateData = req.body;
-      if (!stateData) {
-        return res.status(400).json({ error: "数据为空" });
+      const { createClient } = await import('@vercel/kv');
+      let kvClient;
+      if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
+        kvClient = createClient({ url: redisUrl, token: token });
+      } else {
+        const m = await import('@vercel/kv');
+        kvClient = m.kv;
       }
-      await client.set("app_data", JSON.stringify(stateData));
-      res.json({ success: true });
+      const serializedData = typeof data === 'string' ? data : JSON.stringify(data);
+      await kvClient.set('schedule_data', serializedData);
+      res.json({ success: true, message: "Saved successfully" });
     } catch (error: any) {
-      console.error("Vercel KV POST error:", error);
-      res.status(500).json({ error: error.message || "储存云端数据失败" });
+      console.warn("Vercel KV failed to write, falling back to local server memory:", error.message);
+      localKvMemory = data;
+      res.json({ success: true, message: "Saved to local server memory fallback" });
     }
   });
 

@@ -1,6 +1,6 @@
 import { useStore } from '../store';
 import { cn } from '../lib/utils';
-import { Settings, Search, Moon, Sun, Monitor, Download, Upload, QrCode, KeyRound, Loader2, CalendarDays, MapPin, Copy, ClipboardPaste, ExternalLink, RefreshCw } from 'lucide-react';
+import { Settings, Search, Moon, Sun, Monitor, Download, Upload, QrCode, KeyRound, Loader2, CalendarDays, MapPin, Copy, ClipboardPaste, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import React, { useState, useRef, useEffect } from 'react';
@@ -9,7 +9,7 @@ import { ExportModal } from './ExportModal';
 import { generateContent } from '../lib/ai';
 
 export function Topbar() {
-  const { isSidebarOpen, toggleSidebar, currentDate, theme, setTheme, importData, setIsSyncModalOpen, setIsApiModalOpen, setIsCloudSyncModalOpen, schedules, categories, geminiApiKey, setEditingScheduleId } = useStore();
+  const { isSidebarOpen, toggleSidebar, currentDate, theme, setTheme, importData, setIsSyncModalOpen, setIsApiModalOpen, schedules, categories, geminiApiKey, setEditingScheduleId } = useStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -279,15 +279,6 @@ ${JSON.stringify(data)}
           {getThemeIcon()}
         </button>
         
-        <button 
-          onClick={() => setIsCloudSyncModalOpen(true)}
-          className="px-3 py-1.5 ml-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card-solid)] hover:bg-[var(--bg-hover)] text-[13px] font-medium text-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5 shadow-sm"
-          title="线上数据同步"
-        >
-          <RefreshCw size={15} />
-          <span className="hidden sm:inline">云同步</span>
-        </button>
-
         <button 
           onClick={() => useStore.getState().toggleRightPanel()}
           className="px-3 py-1.5 ml-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card-solid)] hover:bg-[var(--bg-hover)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
