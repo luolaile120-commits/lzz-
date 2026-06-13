@@ -58,6 +58,13 @@ async function startServer() {
     let redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL || process.env.KV_URL;
     let token = process.env.KV_REST_API_TOKEN;
 
+    if (redisUrl) {
+      redisUrl = redisUrl.trim().replace(/^['"]|['"]$/g, '');
+    }
+    if (token) {
+      token = token.trim().replace(/^['"]|['"]$/g, '');
+    }
+
     if (!redisUrl) return null;
 
     if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {

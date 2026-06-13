@@ -17,10 +17,16 @@ export function CloudSync() {
     setSyncText(isManual ? '正在手动拉取中...' : '正在同步云端数据...');
     try {
       const res = await fetch('/api/kv');
-      if (!res.ok) {
-        throw new Error(`网络拉取状态异常 (${res.status})`);
+      let result: any = null;
+      try {
+        result = await res.json();
+      } catch (e) {
+        // failed to parse JSON
       }
-      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result?.error || `网络拉取状态异常 (${res.status})`);
+      }
       
       if (result && result.success === false) {
         throw new Error(result.error || '云端返回错误');
@@ -75,11 +81,17 @@ export function CloudSync() {
         body: JSON.stringify({ data: payload }),
       });
 
-      if (!res.ok) {
-        throw new Error(`网络上传状态异常 (${res.status})`);
+      let result: any = null;
+      try {
+        result = await res.json();
+      } catch (e) {
+        // failed to parse JSON
       }
 
-      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.error || `网络上传状态异常 (${res.status})`);
+      }
+
       if (result && result.success === false) {
         throw new Error(result.error || '云端保存错误');
       }
