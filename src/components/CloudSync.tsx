@@ -17,9 +17,15 @@ export function CloudSync() {
     setSyncText(isManual ? '正在手动拉取中...' : '正在同步云端数据...');
     try {
       const res = await fetch('/api/kv');
-      if (!res.ok) throw new Error('Network response was not ok');
+      if (!res.ok) {
+        throw new Error(`网络拉取状态异常 (${res.status})`);
+      }
       const result = await res.json();
       
+      if (result && result.success === false) {
+        throw new Error(result.error || '云端返回错误');
+      }
+
       if (result && result.success && result.data) {
         const cloudState = result.data.state || result.data;
         if (cloudState && (cloudState.schedules || cloudState.permanentTasks)) {
@@ -36,14 +42,14 @@ export function CloudSync() {
         setSyncStatus('idle');
         setSyncText('云端就绪');
       }, 2000);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Cloud pull failed:', e);
       setSyncStatus('error');
-      setSyncText('云端同步失败，请检查网络');
+      setSyncText(e.message || '拉取同步失败，请检查网络');
       setTimeout(() => {
         setSyncStatus('idle');
         setSyncText('云端就绪');
-      }, 3000);
+      }, 5000);
     } finally {
       isFirstLoadRef.current = false;
     }
@@ -69,7 +75,14 @@ export function CloudSync() {
         body: JSON.stringify({ data: payload }),
       });
 
-      if (!res.ok) throw new Error('Push failed');
+      if (!res.ok) {
+        throw new Error(`网络上传状态异常 (${res.status})`);
+      }
+
+      const result = await res.json();
+      if (result && result.success === false) {
+        throw new Error(result.error || '云端保存错误');
+      }
 
       setSyncStatus('success');
       setSyncText(isManual ? '已成功上传云端' : '云端同步完成');
@@ -77,14 +90,14 @@ export function CloudSync() {
         setSyncStatus('idle');
         setSyncText('云端就绪');
       }, 2000);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Cloud upload failed:', e);
       setSyncStatus('error');
-      setSyncText('云端同步失败，请检查网络');
+      setSyncText(e.message || '上传同步失败，请检查网络');
       setTimeout(() => {
         setSyncStatus('idle');
         setSyncText('云端就绪');
-      }, 3000);
+      }, 5000);
     }
   };
 

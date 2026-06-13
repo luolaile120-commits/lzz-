@@ -54,23 +54,41 @@ async function startServer() {
   // Local memory store fallback when Vercel KV environment variables are not set
   let localKvMemory: any = null;
 
-  app.get("/api/kv", async (req, res) => {
-    const redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL;
-    const token = process.env.KV_REST_API_TOKEN;
-    if (!redisUrl || !token) {
-      console.warn("KV environment variables are not fully configured (Requires URL and TOKEN). Using local server memory fallback for /api/kv.");
-      return res.json({ success: true, data: localKvMemory });
-    }
-    
-    try {
-      const { createClient } = await import('@vercel/kv');
-      let kvClient;
-      if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
-        kvClient = createClient({ url: redisUrl, token: token });
-      } else {
-        const m = await import('@vercel/kv');
-        kvClient = m.kv;
+  const getKVClient = async () => {
+    let redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL || process.env.KV_URL;
+    let token = process.env.KV_REST_API_TOKEN;
+
+    if (!redisUrl) return null;
+
+    if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {
+      try {
+        const parsed = new URL(redisUrl);
+        redisUrl = `https://${parsed.hostname}`;
+        if (parsed.password) {
+          token = parsed.password;
+        }
+      } catch (err) {
+        console.error('Error parsing redis connection URL as Rest URL:', err);
       }
+    }
+
+    if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
+      const { createClient } = await import('@vercel/kv');
+      return createClient({ url: redisUrl, token: token || '' });
+    } else {
+      const m = await import('@vercel/kv');
+      return m.kv;
+    }
+  };
+
+  app.get("/api/kv", async (req, res) => {
+    try {
+      const kvClient = await getKVClient();
+      if (!kvClient) {
+        console.warn("KV environment variables are not configured. Using local server memory fallback for /api/kv.");
+        return res.json({ success: true, data: localKvMemory });
+      }
+      
       const dataStr = await kvClient.get('schedule_data');
       let parsedData = null;
       if (dataStr) {
@@ -85,23 +103,14 @@ async function startServer() {
 
   app.post("/api/kv", async (req, res) => {
     const { data } = req.body;
-    const redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL;
-    const token = process.env.KV_REST_API_TOKEN;
-    if (!redisUrl || !token) {
-      console.warn("KV environment variables are not fully configured (Requires URL and TOKEN). Saving to local server memory fallback for /api/kv.");
-      localKvMemory = data;
-      return res.json({ success: true, message: "Saved to local server memory (No KV configured)" });
-    }
-
     try {
-      const { createClient } = await import('@vercel/kv');
-      let kvClient;
-      if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
-        kvClient = createClient({ url: redisUrl, token: token });
-      } else {
-        const m = await import('@vercel/kv');
-        kvClient = m.kv;
+      const kvClient = await getKVClient();
+      if (!kvClient) {
+        console.warn("KV environment variables are not configured. Saving to local server memory fallback for /api/kv.");
+        localKvMemory = data;
+        return res.json({ success: true, message: "Saved to local server memory (No KV configured)" });
       }
+
       const serializedData = typeof data === 'string' ? data : JSON.stringify(data);
       await kvClient.set('schedule_data', serializedData);
       res.json({ success: true, message: "Saved successfully" });

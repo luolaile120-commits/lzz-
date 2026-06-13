@@ -10,34 +10,40 @@ export default async function handler(request, response) {
     return response.status(200).end();
   }
 
-  // Retrieve environment variables. Priority: KV_REDIS_URL (which might contain REST API url on Vercel),
-  // then standard KV_REST_API_URL / KV_REST_API_TOKEN.
-  // Note: Vercel KV SDK expects REST credentials.
-  const redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  // Retrieve environment variables. Priority: KV_REST_API_URL, then KV_REDIS_URL / KV_URL.
+  // Note: Vercel KV/Upstash SDK expects REST credentials (https:// url and token).
+  let redisUrl = process.env.KV_REST_API_URL || process.env.KV_REDIS_URL || process.env.KV_URL;
+  let token = process.env.KV_REST_API_TOKEN;
 
   if (!redisUrl) {
     return response.status(500).json({
       success: false,
-      error: 'Environment variable KV_REDIS_URL or KV_REST_API_URL is not set. Please configure Vercel KV.'
+      error: 'Environment variable KV_REDIS_URL, KV_REST_API_URL or KV_URL is not set. Please configure Vercel KV.'
     });
   }
 
   try {
-    // Check if the URL is a standard Redis URL (e.g., redis://) or REST URL (https://)
-    // Vercel KV SDK requires the REST URL and TOKEN. If KV_REDIS_URL starts with redis://,
-    // Vercel KV library might automatically fallback to process.env.KV_REST_API_URL if we use the default exported 'kv' from '@vercel/kv'.
-    // Here we'll configure createClient adaptively.
     let kvClient;
+    
+    // Parse dynamic redis/rediss connection strings into Upstash REST format
+    if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {
+      try {
+        const parsed = new URL(redisUrl);
+        redisUrl = `https://${parsed.hostname}`;
+        if (parsed.password) {
+          token = parsed.password;
+        }
+      } catch (err) {
+        console.error('Error parsing redis connection URL as Rest URL:', err);
+      }
+    }
+
     if (redisUrl.startsWith('http://') || redisUrl.startsWith('https://')) {
       kvClient = createClient({
         url: redisUrl,
         token: token || '',
       });
     } else {
-      // If it is redis://, we should try using `@vercel/kv` default client which binds to standard env,
-      // or if they have custom URL we can use that.
-      // For Vercel, the standard export 'kv' automatically connects using KV_REST_API_URL and KV_REST_API_TOKEN.
       const m = await import('@vercel/kv');
       kvClient = m.kv;
     }
