@@ -2,6 +2,30 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import * as path from "path";
 import cors from "cors";
+import Redis from "ioredis";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+let redisClient: Redis | null = null;
+
+function getRedisClient() {
+  if (!redisClient) {
+    const redisUrl = process.env.KV_REDIS_URL || "redis://default:b8fcXFu8fFBxNYo45phx3ob5sUe69JNi@thatch-caption-side-46195.db.redis.io:10087";
+    redisClient = new Redis(redisUrl, {
+      maxRetriesPerRequest: 3,
+      retryStrategy(times) {
+        const delay = Math.min(times * 100, 2000);
+        return delay;
+      }
+    });
+    
+    redisClient.on("error", (err) => {
+      console.error("Redis client error:", err);
+    });
+  }
+  return redisClient;
+}
 
 async function startServer() {
   const app = express();
@@ -49,6 +73,36 @@ async function startServer() {
     session.data = req.body.data;
     session.status = "ready";
     res.json({ success: true });
+  });
+
+  // Vercel KV / Upstash Redis sync endpoints
+  app.get("/api/kv", async (req, res) => {
+    try {
+      const client = getRedisClient();
+      const raw = await client.get("app_data");
+      if (!raw) {
+        return res.json({ state: null });
+      }
+      res.json(JSON.parse(raw));
+    } catch (error: any) {
+      console.error("Vercel KV GET error:", error);
+      res.status(500).json({ error: error.message || "获取云端数据失败" });
+    }
+  });
+
+  app.post("/api/kv", async (req, res) => {
+    try {
+      const client = getRedisClient();
+      const stateData = req.body;
+      if (!stateData) {
+        return res.status(400).json({ error: "数据为空" });
+      }
+      await client.set("app_data", JSON.stringify(stateData));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Vercel KV POST error:", error);
+      res.status(500).json({ error: error.message || "储存云端数据失败" });
+    }
   });
 
   app.get("/raw.txt", (req, res) => {

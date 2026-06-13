@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from './store';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
@@ -13,7 +13,7 @@ import { MonthView } from './components/MonthView';
 import { QuickFab } from './components/QuickFab';
 import { RightPanel } from './components/RightPanel';
 import { cn } from './lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Cloud, Loader2, AlertCircle } from 'lucide-react';
 import { addDays, addWeeks, addMonths, subDays, subWeeks, subMonths, format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -23,7 +23,33 @@ import { CloudSyncModal } from './components/CloudSyncModal';
 import { ApiModal } from './components/ApiModal';
 
 export default function App() {
-  const { theme, themePreset, animations, isSidebarOpen, isRightPanelOpen, viewMode, currentDate, setViewMode, setCurrentDate, isSyncModalOpen, setIsSyncModalOpen, isCloudSyncModalOpen, setIsCloudSyncModalOpen } = useStore();
+  const { 
+    theme, 
+    themePreset, 
+    animations, 
+    isSidebarOpen, 
+    isRightPanelOpen, 
+    viewMode, 
+    currentDate, 
+    setViewMode, 
+    setCurrentDate, 
+    isSyncModalOpen, 
+    setIsSyncModalOpen, 
+    isCloudSyncModalOpen, 
+    setIsCloudSyncModalOpen,
+    schedules,
+    permanentTasks,
+    categories,
+    syncEndpoint,
+    syncToken,
+    autoPullOnLoad,
+    autoPushOnChange,
+    importData
+  } = useStore();
+
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const isSyncingData = useRef(false);
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -32,6 +58,130 @@ export default function App() {
     root.setAttribute('data-preset', themePreset);
     root.setAttribute('data-anim', animations ? 'on' : 'off');
   }, [theme, themePreset, animations]);
+
+  // 1. Auto Pull on Mount
+  useEffect(() => {
+    const performAutoPull = async () => {
+      if (!syncEndpoint || !autoPullOnLoad) return;
+      
+      try {
+        setSyncStatus('syncing');
+        const headers: Record<string, string> = {};
+        if (syncToken) {
+          if (syncEndpoint.includes('jsonbin')) {
+            headers['X-Master-Key'] = syncToken;
+          } else {
+            headers['Authorization'] = `Bearer ${syncToken}`;
+          }
+        }
+
+        let fetchUrl = syncEndpoint;
+        if (syncEndpoint.includes('jsonbin.io/v3/b/') && !syncEndpoint.includes('/latest')) {
+          fetchUrl = `${syncEndpoint}/latest`;
+        }
+
+        const response = await fetch(fetchUrl, {
+          method: 'GET',
+          headers
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const responseText = await response.text();
+        let rawData;
+        try {
+          rawData = JSON.parse(responseText);
+        } catch (e) {
+          throw new Error("Invalid JSON response");
+        }
+        
+        let parsedData = rawData;
+        if (rawData && rawData.state) {
+          parsedData = rawData;
+        } else if (rawData && rawData.record && rawData.record.state) {
+          parsedData = rawData.record;
+        }
+
+        if (parsedData.state) {
+          isSyncingData.current = true;
+          importData(parsedData.state);
+          setSyncStatus('success');
+          setTimeout(() => {
+            setSyncStatus('idle');
+            isSyncingData.current = false;
+          }, 3000);
+        } else {
+          throw new Error("Invalid schema");
+        }
+      } catch (e) {
+        console.error("Auto pull failed:", e);
+        setSyncStatus('error');
+        setTimeout(() => setSyncStatus('idle'), 5000);
+      }
+    };
+
+    performAutoPull();
+  }, []);
+
+  // 2. Auto Push on Changes (Debounced)
+  useEffect(() => {
+    // Skip the absolute first run when loading component
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    
+    if (isSyncingData.current) return;
+    if (!syncEndpoint || !autoPushOnChange) return;
+
+    const performAutoPush = async () => {
+      try {
+        setSyncStatus('syncing');
+        const dataStr = localStorage.getItem('schedule-store-v1');
+        if (!dataStr) return;
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (syncToken) {
+          if (syncEndpoint.includes('jsonbin')) {
+            headers['X-Master-Key'] = syncToken;
+          } else {
+            headers['Authorization'] = `Bearer ${syncToken}`;
+          }
+        }
+
+        const isInternalKV = syncEndpoint === '/api/kv' || syncEndpoint.startsWith('/api/');
+        const requestBody = isInternalKV ? JSON.parse(dataStr) : dataStr;
+
+        const response = await fetch(syncEndpoint, {
+          method: isInternalKV ? 'POST' : (syncEndpoint.includes('jsonbin.io/v3/b/') && !syncEndpoint.endsWith('/') ? 'PUT' : 'POST'),
+          headers,
+          body: typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        setSyncStatus('success');
+        setTimeout(() => setSyncStatus('idle'), 3000);
+      } catch (e) {
+        console.error("Auto push failed:", e);
+        setSyncStatus('error');
+        setTimeout(() => setSyncStatus('idle'), 5000);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      performAutoPush();
+    }, 2500); // 2.5s debounce to bundle quick modifications
+
+    return () => clearTimeout(timer);
+  }, [schedules, permanentTasks, categories, autoPushOnChange, syncEndpoint]);
 
   const handlePrev = () => {
     if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1));
@@ -91,6 +241,30 @@ export default function App() {
       {isSyncModalOpen && <SyncModal onClose={() => setIsSyncModalOpen(false)} />}
       {isCloudSyncModalOpen && <CloudSyncModal onClose={() => setIsCloudSyncModalOpen(false)} />}
       <ApiModal />
+
+      {/* 浮动智能同步状态指示器 */}
+      {syncStatus !== 'idle' && (
+        <div className="fixed bottom-6 right-6 z-[999] flex items-center gap-2.5 px-4 py-3 rounded-2xl border border-[var(--border-divider)] bg-[var(--bg-card-solid)] shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
+          {syncStatus === 'syncing' && (
+            <>
+              <Loader2 size={15} className="animate-spin text-[var(--accent)]" />
+              <span className="text-[13px] font-medium text-[var(--text-primary)]">正在云同步...</span>
+            </>
+          )}
+          {syncStatus === 'success' && (
+            <>
+              <Cloud size={15} className="text-[var(--success)]" />
+              <span className="text-[13px] font-medium text-[var(--text-primary)]">云端同步成功</span>
+            </>
+          )}
+          {syncStatus === 'error' && (
+            <>
+              <AlertCircle size={15} className="text-[var(--danger)]" />
+              <span className="text-[13px] font-medium text-[var(--text-primary)]">云同步失败，请检查网络</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

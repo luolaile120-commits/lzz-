@@ -4,7 +4,17 @@ import { Cloud, X, Loader2, UploadCloud, DownloadCloud, Server } from 'lucide-re
 import { cn } from '../lib/utils';
 
 export function CloudSyncModal({ onClose }: { onClose: () => void }) {
-  const { importData, schedules, categories, syncEndpoint, syncToken, setSyncEndpoint, setSyncToken } = useStore();
+  const { 
+    importData, 
+    syncEndpoint, 
+    syncToken, 
+    setSyncEndpoint, 
+    setSyncToken,
+    autoPullOnLoad,
+    autoPushOnChange,
+    setAutoPullOnLoad,
+    setAutoPushOnChange
+  } = useStore();
   const [status, setStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -27,7 +37,6 @@ export function CloudSyncModal({ onClose }: { onClose: () => void }) {
       };
       
       if (syncToken) {
-        // Simple support for JSONBin authorization or standard Bearer token
         if (syncEndpoint.includes('jsonbin')) {
           headers['X-Master-Key'] = syncToken;
         } else {
@@ -35,10 +44,13 @@ export function CloudSyncModal({ onClose }: { onClose: () => void }) {
         }
       }
 
+      const isInternalKV = syncEndpoint === '/api/kv' || syncEndpoint.startsWith('/api/');
+      const requestBody = isInternalKV ? JSON.parse(dataStr) : dataStr;
+
       const response = await fetch(syncEndpoint, {
-        method: syncEndpoint.includes('jsonbin.io/v3/b/') && !syncEndpoint.endsWith('/') ? 'PUT' : 'POST',
+        method: isInternalKV ? 'POST' : (syncEndpoint.includes('jsonbin.io/v3/b/') && !syncEndpoint.endsWith('/') ? 'PUT' : 'POST'),
         headers,
-        body: dataStr
+        body: typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)
       });
 
       let responseText = await response.text();
@@ -83,7 +95,6 @@ export function CloudSyncModal({ onClose }: { onClose: () => void }) {
         }
       }
 
-      // JSONbin gives a specific record wrapper, other standard APIs might just return the raw JSON or a wrapper
       let fetchUrl = syncEndpoint;
       if (syncEndpoint.includes('jsonbin.io/v3/b/') && !syncEndpoint.includes('/latest')) {
          fetchUrl = `${syncEndpoint}/latest`;
@@ -108,8 +119,9 @@ export function CloudSyncModal({ onClose }: { onClose: () => void }) {
       }
       let parsedData = rawData;
       
-      // Handle JSONBin specific wrapper format
-      if (rawData && rawData.record && rawData.record.state) {
+      if (rawData && rawData.state) {
+        parsedData = rawData;
+      } else if (rawData && rawData.record && rawData.record.state) {
         parsedData = rawData.record;
       }
 
@@ -121,7 +133,7 @@ export function CloudSyncModal({ onClose }: { onClose: () => void }) {
           onClose();
         }, 2000);
       } else {
-        throw new Error("返回的数据格式不正确");
+        throw new Error("返回的数据格式不正确（无可恢复的日程数据）");
       }
 
     } catch (e: any) {
@@ -145,34 +157,65 @@ export function CloudSyncModal({ onClose }: { onClose: () => void }) {
 
         <div className="p-6">
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
-            在您的域名或其他服务器上配置一个用于存储 JSON 的 API，或者使用类似 <a href="https://jsonbin.io" target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">JSONBin.io</a> 的免费服务来保持设备间的数据同步。
+            应用已对接 Vercel KV &amp; Redis 数据库实现多设备数据同步。默认通过后端的 <code className="px-1 text-xs py-0.5 rounded bg-[var(--bg-hover)] text-[var(--accent)] font-mono">/api/kv</code> 进行安全连接。
           </p>
 
           <div className="space-y-4 mb-6">
             <div>
-              <label className="block text-[13px] font-semibold mb-1.5 text-[var(--text-secondary)]">云端 API 地址 (URL)</label>
+              <label className="block text-[13px] font-semibold mb-1.5 text-[var(--text-secondary)]">云端同步路由 / API URL</label>
               <div className="relative">
                 <Server size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
                 <input
                   type="text"
                   value={syncEndpoint}
                   onChange={(e) => setSyncEndpoint(e.target.value)}
-                  placeholder="https://api.jsonbin.io/v3/b/你的_BIN_ID"
+                  placeholder="/api/kv"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-hover)] text-[14px] focus:bg-[var(--bg-card-solid)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[var(--accent-light)] transition-all outline-none"
                 />
               </div>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-1">本地部署或部署在 Vercel 时，请保持默认的 <code className="font-mono">/api/kv</code></p>
             </div>
 
             <div>
-              <label className="block text-[13px] font-semibold mb-1.5 text-[var(--text-secondary)]">身份验证令牌 / Auth Token (可选)</label>
+              <label className="block text-[13px] font-semibold mb-1.5 text-[var(--text-secondary)]">安全身份凭证 (可选)</label>
               <input
                 type="password"
                 value={syncToken}
                 onChange={(e) => setSyncToken(e.target.value)}
-                placeholder="Bearer token 或 X-Master-Key"
+                placeholder="配合外部 API 使用时的 Auth Token"
                 className="w-full px-3 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-hover)] text-[14px] focus:bg-[var(--bg-card-solid)] focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[var(--accent-light)] transition-all outline-none"
               />
             </div>
+          </div>
+
+          <div className="space-y-3.5 mb-6 p-4 rounded-xl bg-[var(--bg-hover)] border border-[var(--border-divider)]">
+            <div className="font-bold text-[12px] text-[var(--text-secondary)] uppercase tracking-wider">智能自动同步设置</div>
+            
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input 
+                type="checkbox"
+                checked={autoPullOnLoad}
+                onChange={(e) => setAutoPullOnLoad(e.target.checked)}
+                className="mt-1 w-4 h-4 accent-[var(--accent)] rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+              />
+              <div>
+                <div className="text-[13px] font-medium text-[var(--text-primary)]">启动应用时自动下载最新数据</div>
+                <div className="text-[11px] text-[var(--text-secondary)]">每次页面载入时，如果有配置云端 API 将自动拉取</div>
+              </div>
+            </label>
+            
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input 
+                type="checkbox"
+                checked={autoPushOnChange}
+                onChange={(e) => setAutoPushOnChange(e.target.checked)}
+                className="mt-1 w-4 h-4 accent-[var(--accent)] rounded border-[var(--border-color)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+              />
+              <div>
+                <div className="text-[13px] font-medium text-[var(--text-primary)]">修改日程时自动上传备份</div>
+                <div className="text-[11px] text-[var(--text-secondary)]">当您新增、编辑或删除日程时，静默秒级备份至云端</div>
+              </div>
+            </label>
           </div>
 
           {status === 'idle' && (
