@@ -20,7 +20,6 @@ import { zhCN } from 'date-fns/locale';
 import { EditModal } from './components/EditModal';
 import { SyncModal } from './components/SyncModal';
 import { ApiModal } from './components/ApiModal';
-import { CloudSync } from './components/CloudSync';
 
 export default function App() {
   const { theme, themePreset, animations, isSidebarOpen, isRightPanelOpen, viewMode, currentDate, setViewMode, setCurrentDate, isSyncModalOpen, setIsSyncModalOpen } = useStore();
@@ -55,7 +54,6 @@ export default function App() {
 
   return (
     <div className="flex h-screen relative bg-[var(--bg-primary)] overflow-hidden">
-      <CloudSync />
       <Sidebar />
 
       <main className={cn(

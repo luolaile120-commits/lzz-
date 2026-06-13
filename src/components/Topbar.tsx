@@ -6,6 +6,7 @@ import { zhCN } from 'date-fns/locale';
 import React, { useState, useRef, useEffect } from 'react';
 import { SyncModal } from './SyncModal';
 import { ExportModal } from './ExportModal';
+import { CloudSync } from './CloudSync';
 import { generateContent } from '../lib/ai';
 
 export function Topbar() {
@@ -220,6 +221,8 @@ ${JSON.stringify(data)}
           <p className="text-[13px] md:text-[15px] text-[var(--text-secondary)]">{format(new Date(), 'yyyy年 MMMM d日 EEEE', { locale: zhCN })}</p>
         </div>
       </div>
+
+      <CloudSync />
 
       <div className="flex items-center gap-2 flex-shrink-0 relative">
         <div className="relative flex items-center" ref={searchRef}>
