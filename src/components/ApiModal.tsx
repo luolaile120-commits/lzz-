@@ -38,6 +38,9 @@ export function ApiModal() {
               输入您的 Google AI Studio API Key 或 DeepSeek API Key (如 sk-...) 以启用智能提取。
               您的密钥仅保存在本地。
             </p>
+            <p className="text-[12px] text-emerald-500 font-medium flex items-center gap-1">
+              💡 提示：留空或未填写时，将默认使用系统优置的 DeepSeek API 密钥。
+            </p>
             <p className="text-[12px] text-[var(--text-secondary)] mt-1">
               <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">
                 获取 DeepSeek API Key
@@ -49,7 +52,7 @@ export function ApiModal() {
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="AIzaSy... 或 sk-..."
+            placeholder="已预置 DeepSeek 密钥 (留空即启用)"
             className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] px-4 py-3 rounded-xl focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] outline-none text-[14px]"
           />
         </div>

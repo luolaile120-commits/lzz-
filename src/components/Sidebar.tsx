@@ -28,7 +28,7 @@ export function Sidebar() {
     if (!textToParse.trim()) return;
     setIsParsing(true);
     try {
-      const gApiKey = geminiApiKey || process.env.GEMINI_API_KEY;
+      const gApiKey = geminiApiKey || process.env.GEMINI_API_KEY || 'sk-1da7019f4eec4a319b638a3603eb355d';
       if (!gApiKey) {
         alert("请先在右上角【API 设置】中配置 API Key");
         setIsParsing(false);
