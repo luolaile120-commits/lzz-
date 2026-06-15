@@ -38,7 +38,8 @@ export function Sidebar() {
       }
       const systemPrompt = `你是一个专业的日程提取助手。当前系统时间是 ${new Date().toLocaleString('zh-CN')}。
 请从用户的输入中提取关键信息，并严格返回JSON格式，不要包含Markdown标记。
-必须返回以下字段：
+如果用户输入的是一个跨越连续多天或多个时段的事件（例如"6月10日下午；6月11日上午两天"），请将它拆分为多个日程对象，每个对象对应一天的一个时段。
+必须返回一个 JSON 数组（哪怕只有一个日程），数组中的每个对象代表一个日程，并包含以下字段：
 - title: 日程标题 (必填)
 - date: 日期 (格式: YYYY-MM-DD，如果没有指定则默认为今天)
 - time: 具体时间 (格式: HH:mm，如 "15:00"，如果没有具体时间则为空字符串)
@@ -51,21 +52,60 @@ export function Sidebar() {
 
       const responseText = await generateContent(gApiKey, textToParse, systemPrompt);
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
+      let parsed = JSON.parse(cleanJson);
       
-      if (parsed) {
-        setForm(prev => ({
-          ...prev,
-          title: parsed.title || prev.title,
-          date: parsed.date || prev.date,
-          time: parsed.time || prev.time,
-          location: parsed.location || prev.location,
-          categoryId: '1', // 强制设置为拍摄
-          timeSlot: parsed.timeSlot || prev.timeSlot,
-          notes: parsed.notes || prev.notes,
-          leaders: parsed.leaders || prev.leaders,
-          department: parsed.department || prev.department
-        }));
+      if (!Array.isArray(parsed)) {
+        parsed = [parsed];
+      }
+
+      if (parsed.length > 0) {
+        if (parsed.length === 1) {
+          const first = parsed[0];
+          setForm(prev => ({
+            ...prev,
+            title: first.title || prev.title,
+            date: first.date || prev.date,
+            time: first.time || prev.time,
+            location: first.location || prev.location,
+            categoryId: '1',
+            timeSlot: first.timeSlot || prev.timeSlot,
+            notes: first.notes || prev.notes,
+            leaders: first.leaders || prev.leaders,
+            department: first.department || prev.department
+          }));
+        } else {
+          // Add all correctly immediately
+          parsed.forEach((p: any) => {
+            addSchedule({
+              title: p.title || '',
+              date: p.date || format(new Date(), 'yyyy-MM-dd'),
+              time: p.time || '',
+              location: p.location || '',
+              timeSlot: p.timeSlot || 'morning',
+              priority: 'medium',
+              categories: ['1'],
+              organizer: [],
+              participant: [],
+              status: 'todo',
+              notes: p.notes || '',
+              leaders: p.leaders || '',
+              department: p.department || ''
+            });
+          });
+          setForm({
+            title: '',
+            date: format(new Date(), 'yyyy-MM-dd'),
+            time: '',
+            location: '',
+            categoryId: categories[0]?.id || '',
+            priority: 'medium',
+            timeSlot: 'morning',
+            notes: '',
+            leaders: '',
+            department: ''
+          });
+          alert(`识别到多天跨度或多个时段，已自动添加 ${parsed.length} 个日程。`);
+        }
         setSmartText('');
       }
     } catch (e) {
