@@ -25,7 +25,7 @@ export async function generateContent(apiKey: string, text: string, systemPrompt
   } else {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash",
+      model: "gemini-2.5-flash",
       contents: text,
       config: {
         systemInstruction: systemPrompt,

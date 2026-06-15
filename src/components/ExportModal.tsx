@@ -4,7 +4,7 @@ import { X, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { useStore } from '../store';
 import { format, getISOWeek, getISOWeeksInYear, startOfISOWeek, endOfISOWeek, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, HeadingLevel } from "docx";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 export function ExportModal({ onClose }: { onClose: () => void }) {
   const { schedules, categories } = useStore();
@@ -62,60 +62,174 @@ export function ExportModal({ onClose }: { onClose: () => void }) {
     const finalTitle = docTitle.trim() || defaultTitle;
 
     if (formatType === 'excel') {
-      const wsData = [
-        ['日期', '时段', '时间', '类型', '标题', '地点', '备注']
+      const headerBorder = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" }
+      };
+
+      const titleStyle = {
+        font: { sz: 24, bold: true },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      };
+
+      const headerStyle = {
+        font: { sz: 14, bold: false }, // matching image: regular text, not bold
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: headerBorder
+      };
+
+      const cellStyle = {
+        font: { sz: 11 },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: headerBorder
+      };
+
+      const wsData: any[][] = [
+        [{ v: '会议登记', t: 's', s: titleStyle }, null, null, null, null, null],
+        [
+          { v: '序', t: 's', s: headerStyle },
+          { v: '会议名称/活动名称', t: 's', s: headerStyle },
+          { v: '活动时间', t: 's', s: headerStyle },
+          { v: '参加领导', t: 's', s: headerStyle },
+          { v: '活动地点', t: 's', s: headerStyle },
+          { v: '责任部门', t: 's', s: headerStyle }
+        ]
       ];
 
-      filteredSchedules.forEach(s => {
+      filteredSchedules.forEach((s, index) => {
         const cat = categories.find(c => s.categories && s.categories.includes(c.id));
         wsData.push([
-          s.date,
-          s.timeSlot === 'morning' ? '上午' : '下午',
-          s.time || '',
-          cat ? cat.name : '',
-          s.title || '',
-          s.location || '',
-          s.notes || ''
+          { v: index + 1, t: 'n', s: cellStyle },
+          { v: s.title || '', t: 's', s: cellStyle },
+          { v: `${s.date} ${s.time || ''}`.trim(), t: 's', s: cellStyle },
+          { v: s.leaders || '', t: 's', s: cellStyle },
+          { v: s.location || '', t: 's', s: cellStyle },
+          { v: s.department || '', t: 's', s: cellStyle }
         ]);
       });
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Setup row heights
+      ws['!rows'] = [
+        { hpt: 60 }, // Title row height
+        { hpt: 30 }, // Header row height
+      ];
+      // Data rows height
+      filteredSchedules.forEach(() => {
+        ws['!rows']!.push({ hpt: 40 });
+      });
+      
+      // Merge A1:F1
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }
+      ];
+      
+      // Column widths
+      ws['!cols'] = [
+        { wch: 6 },  // 序
+        { wch: 45 }, // 会议名称/活动名称
+        { wch: 22 }, // 活动时间
+        { wch: 20 }, // 参加领导
+        { wch: 25 }, // 活动地点
+        { wch: 15 }, // 责任部门
+      ];
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "日程");
       XLSX.writeFile(wb, `${finalTitle}.xlsx`);
       
     } else if (formatType === 'word') {
+      const dateRangeStr = rangeType === 'week' 
+        ? `（${format(start!, 'M月d日')}—${format(end!, 'M月d日')}）` 
+        : `（${format(start!, 'M月d日')}）`;
+
+      const headerDateRangeStr = rangeType === 'week'
+        ? `${format(start!, 'M月d日')}—${format(end!, 'M月d日')}`
+        : format(start!, 'M月d日');
+
+      const weekSubtitle = rangeType === 'week' ? `（${year}年第${week}周）` : ``;
+
       const doc = new Document({
         sections: [{
           properties: {},
           children: [
+            // --- Section 1: Directory ---
             new Paragraph({
-              text: finalTitle,
-              heading: HeadingLevel.HEADING_1,
+              children: [
+                new TextRun({ text: "市院领导近期重要活动", bold: true, size: 44 }) // 22pt
+              ],
               alignment: AlignmentType.CENTER,
-              spacing: { after: 400 },
+              spacing: { after: 200 },
             }),
-            ...filteredSchedules.map(s => {
-              const cat = categories.find(c => s.categories && s.categories.includes(c.id));
+            new Paragraph({
+              children: [
+                new TextRun({ 
+                  text: dateRangeStr,
+                  size: 32 // 16pt
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 600 },
+            }),
+            ...filteredSchedules.map((s, index) => {
               return new Paragraph({
                 children: [
-                  new TextRun({ text: `日期：`, bold: true }),
-                  new TextRun({ text: `${s.date} ${s.timeSlot === 'morning' ? '上午' : '下午'} ${s.time || ''} ` }),
-                  new TextRun({ text: `类型：`, bold: true }),
-                  new TextRun({ text: `${cat ? cat.name : ''}\n` }),
-                  new TextRun({ text: `标题：`, bold: true }),
-                  new TextRun({ text: `${s.title}\n` }),
-                  ...(s.location ? [
-                    new TextRun({ text: `地点：`, bold: true }),
-                    new TextRun({ text: `${s.location}\n` })
-                  ] : []),
-                  ...(s.notes ? [
-                    new TextRun({ text: `备注：`, bold: true }),
-                    new TextRun({ text: `${s.notes}\n` })
-                  ] : []),
+                  new TextRun({ text: `${index + 1}.    ${s.title}`, size: 32, font: "仿宋_GB2312" }) // 16pt
                 ],
-                spacing: { after: 200 }
+                spacing: { after: 300, line: 360 } // add some line spacing
               });
+            }),
+            
+            // --- Section 2: Details ---
+            new Paragraph({
+              pageBreakBefore: true,
+              children: [
+                new TextRun({ text: rangeType === 'week' ? "本周会议（活动）安排" : "本日会议（活动）安排", bold: true, size: 44 })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
+            }),
+            ...(weekSubtitle ? [
+              new Paragraph({
+                children: [new TextRun({ text: weekSubtitle, size: 32, font: "仿宋_GB2312" })],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 400 }
+              })
+            ] : []),
+            new Paragraph({
+              children: [
+                new TextRun({ text: `岳阳市人民检察院办公室                ${headerDateRangeStr}`, size: 32, font: "黑体" })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 600 }
+            }),
+            ...filteredSchedules.flatMap((s) => {
+              const cat = categories.find(c => s.categories && s.categories.includes(c.id));
+              return [
+                new Paragraph({
+                  children: [new TextRun({ text: `活动名称: `, size: 32, font: "仿宋_GB2312" }), new TextRun({ text: s.title || '', size: 32, font: "仿宋_GB2312" })],
+                  spacing: { after: 200 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `活动时间: `, size: 32, font: "仿宋_GB2312" }), new TextRun({ text: `${s.date} ${s.time || ''}`.trim(), size: 32, font: "仿宋_GB2312" })],
+                  spacing: { after: 200 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `参加领导: `, size: 32, font: "仿宋_GB2312" }), new TextRun({ text: s.leaders || '', size: 32, font: "仿宋_GB2312" })],
+                  spacing: { after: 200 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `活动地点: `, size: 32, font: "仿宋_GB2312" }), new TextRun({ text: s.location || '', size: 32, font: "仿宋_GB2312" })],
+                  spacing: { after: 200 }
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `责任部门: `, size: 32, font: "仿宋_GB2312" }), new TextRun({ text: s.department || '', size: 32, font: "仿宋_GB2312" })],
+                  spacing: { after: 600 }
+                })
+              ];
             })
           ],
         }],

@@ -52,6 +52,8 @@ export function DayView() {
                     </span>
                   )}
                   {s.location && <span className="text-[12px] text-[var(--text-secondary)]">📍 {s.location}</span>}
+                  {s.leaders && <span className="text-[12px] text-[var(--text-secondary)]">👥 {s.leaders}</span>}
+                  {s.department && <span className="text-[12px] text-[var(--text-secondary)]">🏢 {s.department}</span>}
                   {s.desc && <span className="text-[12px] text-[var(--text-tertiary)] truncate max-w-[200px]">{s.desc}</span>}
                 </div>
               </div>

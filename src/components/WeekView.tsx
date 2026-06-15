@@ -99,6 +99,12 @@ export function WeekView() {
                         {e.date} · 上午 · {e.status === 'completed' ? '已完成' : '待办'}
                       </div>
                       {e.time && <div className="text-[14px] opacity-80">上午{e.time}</div>}
+                      {(e.leaders || e.department) && (
+                        <div className="text-[12px] opacity-80 mt-1">
+                          {e.leaders && <div>领导：{e.leaders}</div>}
+                          {e.department && <div>部门：{e.department}</div>}
+                        </div>
+                      )}
                     </div>
                   }>
                     <div className="w-full text-left line-clamp-2">{e.title}</div>
@@ -148,6 +154,12 @@ export function WeekView() {
                         {e.date} · 下午 · {e.status === 'completed' ? '已完成' : '待办'}
                       </div>
                       {e.time && <div className="text-[14px] opacity-80">下午{e.time}</div>}
+                      {(e.leaders || e.department) && (
+                        <div className="text-[12px] opacity-80 mt-1">
+                          {e.leaders && <div>领导：{e.leaders}</div>}
+                          {e.department && <div>部门：{e.department}</div>}
+                        </div>
+                      )}
                     </div>
                   }>
                     <div className="w-full text-left line-clamp-2">{e.title}</div>

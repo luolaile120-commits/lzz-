@@ -88,6 +88,12 @@ export function MonthView() {
                         <div className="font-bold text-[13px]">{e.title}</div>
                         <div className="flex items-center gap-1.5 opacity-80"><CalendarDays size={12}/> {e.date} {e.time || ''}</div>
                         {e.location && <div className="flex items-center gap-1.5 opacity-80"><MapPin size={12}/> {e.location}</div>}
+                        {(e.leaders || e.department) && (
+                          <div className="text-[11px] opacity-80 mt-0.5">
+                            {e.leaders && <div>领导：{e.leaders}</div>}
+                            {e.department && <div>部门：{e.department}</div>}
+                          </div>
+                        )}
                       </div>
                     }>
                       <div className="w-full text-left truncate leading-tight">{e.title}</div>

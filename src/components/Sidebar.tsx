@@ -20,7 +20,9 @@ export function Sidebar() {
     categoryId: categories[0]?.id || '',
     priority: 'medium' as Priority,
     timeSlot: 'morning' as TimeSlot,
-    notes: ''
+    notes: '',
+    leaders: '',
+    department: ''
   });
 
   const handleParse = async (overrideText?: string) => {
@@ -43,7 +45,9 @@ export function Sidebar() {
 - location: 地点 (如果没有则为空字符串)
 - categoryId: 分类 (不管内容是什么，一律固定填 '1')
 - timeSlot: 时段 (上午为 'morning', 下午或晚上为 'afternoon')
-- notes: 备注 (在此提取日程的特别注意事项，如：哪个领导参会、哪个部门组织、注意事项等，如果没有则为空字符串)`;
+- notes: 备注 (如果不属于以上任何字段的补充说明，填在这里)
+- leaders: 参加领导 (提取参会领导的姓名，没有则为空)
+- department: 责任部门 (提取组织部门的名称，没有则为空)`;
 
       const responseText = await generateContent(gApiKey, textToParse, systemPrompt);
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -58,7 +62,9 @@ export function Sidebar() {
           location: parsed.location || prev.location,
           categoryId: '1', // 强制设置为拍摄
           timeSlot: parsed.timeSlot || prev.timeSlot,
-          notes: parsed.notes || prev.notes
+          notes: parsed.notes || prev.notes,
+          leaders: parsed.leaders || prev.leaders,
+          department: parsed.department || prev.department
         }));
         setSmartText('');
       }
@@ -83,7 +89,9 @@ export function Sidebar() {
       organizer: [],
       participant: [],
       status: 'todo',
-      notes: form.notes
+      notes: form.notes,
+      leaders: form.leaders,
+      department: form.department
     });
     setForm({
       title: '',
@@ -93,7 +101,9 @@ export function Sidebar() {
       categoryId: categories[0]?.id || '',
       priority: 'medium',
       timeSlot: 'morning',
-      notes: ''
+      notes: '',
+      leaders: '',
+      department: ''
     });
   };
 
@@ -202,8 +212,16 @@ export function Sidebar() {
              </select>
           </div>
           <div className="space-y-1.5 flex-1">
+             <label className="text-[13px] font-semibold text-[var(--text-secondary)]">参加领导</label>
+             <input value={form.leaders} onChange={e => setForm({...form, leaders: e.target.value})} type="text" placeholder="参加领导" className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors" />
+          </div>
+          <div className="space-y-1.5 flex-1">
+             <label className="text-[13px] font-semibold text-[var(--text-secondary)]">责任部门</label>
+             <input value={form.department} onChange={e => setForm({...form, department: e.target.value})} type="text" placeholder="责任部门" className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors" />
+          </div>
+          <div className="space-y-1.5 flex-1">
             <label className="text-[13px] font-semibold text-[var(--text-secondary)]">备注</label>
-            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors resize-none" placeholder="例如：某领导参会、某部门组织..."></textarea>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors resize-none" placeholder="例如：注意事项..."></textarea>
           </div>
         </div>
       </div>

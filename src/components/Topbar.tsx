@@ -59,7 +59,9 @@ export function Topbar() {
           date: s.date,
           time: s.time || '',
           location: s.location || '',
-          notes: s.notes || ''
+          notes: s.notes || '',
+          leaders: s.leaders || '',
+          department: s.department || ''
         }));
 
         const systemPrompt = `你是一个智能日程检索助手。当前系统时间是 ${new Date().toLocaleString('zh-CN')}。

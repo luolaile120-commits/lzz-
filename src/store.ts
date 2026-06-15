@@ -30,6 +30,8 @@ export interface Schedule {
   createTime: string;
   reminder?: string;
   notes?: string;
+  leaders?: string;
+  department?: string;
 }
 
 export interface PermanentTask {

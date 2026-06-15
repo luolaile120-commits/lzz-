@@ -55,8 +55,18 @@ export function EditModal() {
           </div>
 
           <div className="space-y-1.5 flex-1">
+             <label className="text-[13px] font-semibold text-[var(--text-secondary)]">参加领导</label>
+             <input value={form.leaders || ''} onChange={e => setForm({...form, leaders: e.target.value})} type="text" className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors" />
+          </div>
+
+          <div className="space-y-1.5 flex-1">
+             <label className="text-[13px] font-semibold text-[var(--text-secondary)]">责任部门</label>
+             <input value={form.department || ''} onChange={e => setForm({...form, department: e.target.value})} type="text" className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors" />
+          </div>
+
+          <div className="space-y-1.5 flex-1">
             <label className="text-[13px] font-semibold text-[var(--text-secondary)]">备注</label>
-            <textarea value={form.notes || ''} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors resize-none" placeholder="例如：某领导参会、某部门组织..."></textarea>
+            <textarea value={form.notes || ''} onChange={e => setForm({...form, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card-solid)] text-[14px] focus:border-[var(--accent)] outline-none transition-colors resize-none" placeholder="例如：注意事项..."></textarea>
           </div>
 
           <div className="flex gap-3">
