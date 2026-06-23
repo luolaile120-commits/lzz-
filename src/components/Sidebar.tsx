@@ -30,7 +30,7 @@ export function Sidebar() {
     if (!textToParse.trim()) return;
     setIsParsing(true);
     try {
-      const gApiKey = geminiApiKey || process.env.GEMINI_API_KEY || 'sk-a7badd0a2a36426095662b76452559c6';
+      const gApiKey = geminiApiKey || 'sk-a7badd0a2a36426095662b76452559c6';
       if (!gApiKey) {
         alert("请先在右上角【API 设置】中配置 API Key");
         setIsParsing(false);

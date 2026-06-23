@@ -18,14 +18,17 @@ export async function generateContent(apiKey: string, text: string, systemPrompt
       })
     });
     if (!res.ok) {
-      throw new Error("API Exception: " + res.statusText);
+      const errText = await res.text();
+      let errObj;
+      try { errObj = JSON.parse(errText); } catch(e) {}
+      throw new Error(`API Exception: ${errObj?.error?.message || res.statusText}`);
     }
     const json = await res.json();
     return json.choices[0].message.content || "";
   } else {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: text,
       config: {
         systemInstruction: systemPrompt,
